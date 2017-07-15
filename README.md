@@ -1,5 +1,10 @@
 # Leaflet microcomponent
 
+## TODO
+
+- Remove lodash
+- Add configuration for popup templates and marker icons
+
 ## Contributors
 
 - Augustin Godiscal <hello@auggod.tech>
