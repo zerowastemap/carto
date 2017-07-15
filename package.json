@@ -1,0 +1,36 @@
+{
+  "name": "depackt-leaflet",
+  "version": "1.0.0",
+  "description": "Microcomponent for using a leaflet map",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/depackt/depackt-leaflet.git"
+  },
+  "keywords": [
+    "leaflet"
+  ],
+  "author": "Augustin Godiscal <dev@auggod.io>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/depackt/depackt-leaflet/issues"
+  },
+  "homepage": "https://github.com/depackt/depackt-leaflet#readme",
+  "dependencies": {
+    "bel": "^5.0.2",
+    "choo": "^5.6.2",
+    "choo-expose": "^1.2.1",
+    "choo-log": "^7.1.0",
+    "leaflet": "^1.1.0",
+    "leaflet.markercluster": "^1.0.6",
+    "lodash": "^4.17.4",
+    "microcomponent": "^3.1.6",
+    "on-idle": "^3.1.0"
+  }
+}
