@@ -23,13 +23,11 @@
   },
   "homepage": "https://github.com/depackt/depackt-leaflet#readme",
   "dependencies": {
-    "bel": "^5.0.2",
     "choo": "^5.6.2",
     "choo-expose": "^1.2.1",
     "choo-log": "^7.1.0",
     "leaflet": "^1.1.0",
     "leaflet.markercluster": "^1.0.6",
-    "lodash": "^4.17.4",
     "microcomponent": "^3.1.6",
     "on-idle": "^3.1.0"
   }

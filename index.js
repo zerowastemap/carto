@@ -4,9 +4,7 @@ require('leaflet.markercluster')
 require('./lib/leaflet.zoomhome')
 const onIdle = require('on-idle')
 const html = require('bel')
-const _map = require('lodash/fp/map')
-const _flow = require('lodash/fp/flow')
-const _find = require('lodash/find')
+const isEqual = require('is-equal-shallow')
 
 module.exports = Leaflet
 
@@ -22,7 +20,8 @@ function Leaflet () {
     },
     state: {
       map: null,
-      markers: null
+      markers: null,
+      items: []
     }
   })
 
@@ -39,13 +38,16 @@ function Leaflet () {
 
   function _zoomtoselected (item) {
     const { _id } = item // get objectid
-    const selected = _find(component.state.markers, (o) => o.item._id === _id)
+    const selected = component.state.markers.find((o) => o.item._id === _id)
     markersLayer.zoomToShowLayer(selected.marker, () => {
       selected.marker.openPopup()
     })
   }
 
   function render () {
+    const state = this.state
+    state.items = this.props.items
+
     if (!component.state.map) {
       component._element = html`<div id="map"></div>`
       if (component._hasWindow) {
@@ -63,7 +65,8 @@ function Leaflet () {
 
   function update (props) {
     return props.coords[0] !== component.props.coords[0] ||
-      props.coords[1] !== component.props.coords[1]
+      props.coords[1] !== component.props.coords[1] ||
+      !isEqual(component.state.items, props.items)
   }
 
   function load () {
@@ -112,18 +115,16 @@ function Leaflet () {
       popupAnchor: [0, -36]
     })
 
-    const markers = _flow(
-      _map((item) => {
-        const { lat, lng } = item.address.location
-        const marker = L.marker([lat, lng], { icon: item.featured ? featuredIcon : defaultIcon })
-        marker.bindPopup(_customPopup(item), customOptions)
-        markersLayer.addLayer(marker)
-        return {
-          item,
-          marker
-        }
-      })
-    )(items)
+    const markers = items.map((item) => {
+      const { lat, lng } = item.address.location
+      const marker = L.marker([lat, lng], { icon: item.featured ? featuredIcon : defaultIcon })
+      marker.bindPopup(_customPopup(item), customOptions)
+      markersLayer.addLayer(marker)
+      return {
+        item,
+        marker
+      }
+    })
 
     component.state.markers = markers
 
