@@ -12,6 +12,7 @@ function Leaflet () {
   const component = microcomponent({
     coords: [50.850340, 4.351710],
     zoom: 15,
+    scrollWheelZoom: false,
     items: [], // data items used to create markers and popups
     selectedIndex: 0,
     mapbox: {
@@ -171,7 +172,7 @@ function Leaflet () {
 
   function _createMap () {
     const element = component._element
-    const { coords, zoom } = component.props
+    const { coords, zoom, scrollWheelZoom } = component.props
     const { background = 'light', accessToken } = component.props.mapbox
     const defaultTiles = `https://api.mapbox.com/styles/v1/mapbox/${background}-v9/tiles/256/{z}/{x}/{y}?access_token=${accessToken}`
     const defaultTilesAttribution = '&copy; <a href="https://www.mapbox.com/map-feedback/">Mapbox</a>'
@@ -182,7 +183,7 @@ function Leaflet () {
       center: coords,
       zoom,
       zoomControl: false,
-      scrollWheelZoom: false
+      scrollWheelZoom
     }
 
     const map = L.map(element, options)
@@ -204,15 +205,17 @@ function Leaflet () {
      * Enable/disable scrollWheelZoom
      */
 
-    map.once('focus', () => map.scrollWheelZoom.enable())
+    if (scrollWheelZoom) {
+      map.once('focus', () => map.scrollWheelZoom.enable())
 
-    map.on('click', () => {
-      if (map.scrollWheelZoom.enabled()) {
-        map.scrollWheelZoom.disable()
-      } else {
-        map.scrollWheelZoom.enable()
-      }
-    })
+      map.on('click', () => {
+        if (map.scrollWheelZoom.enabled()) {
+          map.scrollWheelZoom.disable()
+        } else {
+          map.scrollWheelZoom.enable()
+        }
+      })
+    }
 
     /**
      * Init Leaflet.markercluster
