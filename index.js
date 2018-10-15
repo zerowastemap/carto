@@ -1,90 +1,94 @@
-const microcomponent = require('microcomponent')
+const Nanocomponent = require('nanocomponent')
 const L = require('leaflet')
 require('leaflet.markercluster')
+require('leaflet.locatecontrol')
 require('./lib/leaflet.zoomhome')
 const onIdle = require('on-idle')
-const html = require('bel')
-const isEqual = require('is-equal-shallow')
+const html = require('nanohtml')
+const compare = require('nanocomponent/compare')
 
-module.exports = Leaflet
+const markersLayer = L.markerClusterGroup()
 
-function Leaflet () {
-  const component = microcomponent({
-    coords: [50.850340, 4.351710],
-    zoom: 15,
-    scrollWheelZoom: false,
-    items: [], // data items used to create markers and popups
-    selectedIndex: 0,
-    mapbox: {
+class Carto extends Nanocomponent {
+  constructor (id, state, emit) {
+    super(id)
+
+    this.id = id
+    this.state = state
+    this.emit = emit
+
+    this.coords = [50.850340, 4.351710]
+    this.zoom = 15
+    this.scrollWheelZoom = false
+    this.items = [] // data items used to create markers and popups
+    this.selectedIndex = 0
+    this.mapbox = {
       accessToken: '',
       background: 'light'
-    },
-    state: {
-      map: null,
-      markers: null,
-      items: []
     }
-  })
+    this.map = null
+    this.markers = null
 
-  const markersLayer = L.markerClusterGroup()
+    this._createMap = this._createMap.bind(this)
+    this._addMarkers = this._addMarkers.bind(this)
+    this._updateMap = this._updateMap.bind(this)
+    this._addControlPlaceholders = this._addControlPlaceholders.bind(this)
 
-  component.on('render', render)
-  component.on('update', update)
-  component.on('load', load)
-  component.on('unload', unload)
+    this.zoomtoselected = this.zoomtoselected.bind(this)
+  }
 
-  component.on('zoomtoselected', _zoomtoselected)
-
-  return component
-
-  function _zoomtoselected (item) {
+  zoomtoselected (item) {
     const { _id } = item // get objectid
-    const selected = component.state.markers.find((o) => o.item._id === _id)
+    const selected = this.markers.find((o) => o.item._id === _id)
     markersLayer.zoomToShowLayer(selected.marker, () => {
       selected.marker.openPopup()
     })
   }
 
-  function render () {
-    const state = this.state
-    state.items = this.props.items
+  createElement (props) {
+    this.tiles = props.tiles
+    this.items = props.items
+    this.coords = props.coords
+    this.zoom = props.zoom
+    this.tilesAttribution = props.tilesAttribution
+    this.icons = props.icons
+    this.popupTemplate = props.popupTemplate
 
-    if (!component.state.map) {
-      component._element = html`<div id="map"></div>`
-      if (component._hasWindow) {
-        _createMap()
-        _addMarkers()
+    if (!this.map) {
+      this._element = html`<div id="map"></div>`
+      if (this._hasWindow) {
+        this._createMap()
+        this._addMarkers()
       }
     } else {
-      onIdle(function () {
-        _updateMap()
+      onIdle(() => {
+        this._updateMap()
       })
     }
 
-    return component._element
+    return this._element
   }
 
-  function update (props) {
-    return props.coords[0] !== component.props.coords[0] ||
-      props.coords[1] !== component.props.coords[1] ||
-      !isEqual(component.state.items, props.items)
+  update (props) {
+    return props.coords[0] !== this.coords[0] ||
+      props.coords[1] !== this.coords[1] ||
+      compare(this.items, props.items)
   }
 
-  function load () {
-    component.state.map.invalidateSize()
+  load () {
+    this.map.invalidateSize()
   }
 
-  function unload () {
-    component.state.map.remove()
-    component.state = {}
-    component._element = null
+  unload () {
+    this.map.remove()
+    this._element = null
   }
 
-  function _addMarkers () {
+  _addMarkers () {
     markersLayer.clearLayers()
-    const { items = [] } = component.props
+    const items = this.items
 
-    const { background = 'light' } = component.props.mapbox
+    const { background = 'light' } = this.mapbox
     const colorInvert = background === 'light' ? 'dark' : 'light'
 
     const customOptions = {
@@ -119,7 +123,7 @@ function Leaflet () {
     const markers = items.map((item) => {
       const { lat, lng } = item.address.location
       const marker = L.marker([lat, lng], { icon: item.featured ? featuredIcon : defaultIcon })
-      marker.bindPopup(_customPopup(item), customOptions)
+      marker.bindPopup(this._customPopup(item), customOptions)
       markersLayer.addLayer(marker)
       return {
         item,
@@ -127,17 +131,17 @@ function Leaflet () {
       }
     })
 
-    component.state.markers = markers
+    this.markers = markers
 
     return markers
   }
 
-  function _addControlPlaceholders (map) {
+  _addControlPlaceholders (map) {
     const corners = map._controlCorners
     const l = 'leaflet-'
     const container = map._controlContainer
 
-    function createCorner (vSide, hSide) {
+    const createCorner = (vSide, hSide) => {
       const className = l + vSide + ' ' + l + hSide
 
       corners[vSide + hSide] = L.DomUtil.create('div', className, container)
@@ -147,7 +151,7 @@ function Leaflet () {
     createCorner('verticalcenter', 'right')
   }
 
-  function _customPopup (item) {
+  _customPopup (item) {
     const { url, title, cover } = item
     const { streetName, streetNumber, zip, city } = item.address
     const template = `
@@ -170,26 +174,35 @@ function Leaflet () {
     return template
   }
 
-  function _createMap () {
-    const element = component._element
-    const { coords, zoom, scrollWheelZoom } = component.props
-    const { background = 'light', accessToken } = component.props.mapbox
+  _createMap () {
+    const element = this._element
+    const coords = this.coords
+    const zoom = this.zoom
+    // const scrollWheelZoom = this.scrollWheelZoom
+    const { background = 'light', accessToken } = this.mapbox
     const defaultTiles = `https://api.mapbox.com/styles/v1/mapbox/${background}-v9/tiles/256/{z}/{x}/{y}?access_token=${accessToken}`
     const defaultTilesAttribution = '&copy; <a href="https://www.mapbox.com/map-feedback/">Mapbox</a>'
-    const { tiles = defaultTiles, tilesAttribution = defaultTilesAttribution } = component.props
+    const tiles = this.tiles || defaultTiles
+    const tilesAttribution = this.tilesAttribution || defaultTilesAttribution
     const mapboxFeedback = '<strong><a href="https://www.mapbox.com/map-feedback/" target="_blank" rel="noopener noreferrer">Improve this map</a></strong>'
 
     const options = {
       center: coords,
       zoom,
       zoomControl: false,
-      scrollWheelZoom
+      scrollWheelZoom: false
     }
 
     const map = L.map(element, options)
 
     const tileLayer = L.tileLayer(tiles, {
-      attribution: `${tilesAttribution} &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> ${!component.props.tiles ? mapboxFeedback : ''}`,
+      attribution: `
+        ${tilesAttribution} &copy;
+        <a href="https://www.openstreetmap.org/copyright">
+          OpenStreetMap
+        </a>
+        ${!this.tiles ? mapboxFeedback : ''}
+      `,
       minZoom: 0,
       maxZoom: 20,
       ext: 'png'
@@ -197,25 +210,21 @@ function Leaflet () {
 
     tileLayer.addTo(map)
 
-    map.on('zoomhome', (e) => {
-      _updateMap()
-    })
+    map.on('zoomhome', (e) => this._updateMap())
 
     /**
      * Enable/disable scrollWheelZoom
      */
 
-    if (scrollWheelZoom) {
-      map.once('focus', () => map.scrollWheelZoom.enable())
+    map.once('focus', () => map.scrollWheelZoom.enable())
 
-      map.on('click', () => {
-        if (map.scrollWheelZoom.enabled()) {
-          map.scrollWheelZoom.disable()
-        } else {
-          map.scrollWheelZoom.enable()
-        }
-      })
-    }
+    map.on('click', () => {
+      if (map.scrollWheelZoom.enabled()) {
+        map.scrollWheelZoom.disable()
+      } else {
+        map.scrollWheelZoom.enable()
+      }
+    })
 
     /**
      * Init Leaflet.markercluster
@@ -229,9 +238,26 @@ function Leaflet () {
      * @link https://stackoverflow.com/questions/33614912/how-to-locate-leaflet-zoom-control-in-a-desired-position
      */
 
-    _addControlPlaceholders(map) // How to locate leaflet zoom control in a desired position
+    this._addControlPlaceholders(map) // How to locate leaflet zoom control in a desired position
 
-    L.control.scale({position: 'verticalcenterright'}).addTo(map)
+    L.control.scale({ position: 'verticalcenterright' }).addTo(map)
+
+    // Add locate.control
+    L.control.locate({
+      position: 'verticalcenterright',
+      setView: false,
+      icon: 'icon icon-marker',
+      iconLoading: 'icon icon-marker icon-marker--loading',
+      locateOptions: {
+        maxZoom: 10
+      }
+    }).addTo(map)
+
+    map.on('locationfound', (e) => {
+      const {latitude: lat, longitude: lng} = e
+      this.emit('locationfound', {lat, lng})
+      map.stopLocate()
+    })
 
     /**
      * Center leaflet popup AND marker to the map
@@ -239,8 +265,20 @@ function Leaflet () {
      */
 
     map.on('popupopen', (e) => {
-      const px = map.project(e.popup._latlng) // find the pixel location on the map where the popup anchor is
-      px.y -= e.popup._container.clientHeight / 2 // find the height of the popup container, divide by 2, subtract from the Y axis of marker location
+      const { popup } = e
+      const index = popup._source._index
+      const items = this.items
+      const selectedIndex = this.selectedIndex
+
+      if (index !== selectedIndex) {
+        this.emit('select', items[index])
+      }
+
+      // find the pixel location on the map where the popup anchor is
+      const px = map.project(popup._latlng)
+      // find the height of the popup container,
+      // and divide by 2, subtract from the Y axis of marker location
+      px.y -= popup._container.clientHeight / 2
       map.panTo(map.unproject(px), {animate: true}) //
     })
 
@@ -254,12 +292,16 @@ function Leaflet () {
 
     zoomHome.addTo(map)
 
-    component.state.map = map
+    this.map = map
   }
 
-  function _updateMap () {
-    const { coords, zoom } = component.props
-    _addMarkers()
-    component.state.map.setView(coords, zoom)
+  _updateMap () {
+    const items = this.items
+    const selectedIndex = this.selectedIndex
+    this._addMarkers()
+    this.map.invalidateSize()
+    this.zoomtoselected(items[selectedIndex])
   }
 }
+
+module.exports = Carto

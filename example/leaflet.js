@@ -1,18 +1,16 @@
-const Leaflet = require('../')
-const leaflet = Leaflet()
+const Carto = require('../')
 const html = require('choo/html')
 
 module.exports = (state, emit) => {
   return html`
     <body>
-      ${leaflet.render({
+      ${state.cache(Carto, 'carto').render({
         coords: state.coords,
         zoom: state.zoom,
         items: state.locations,
         selectedIndex: state.selectedIndex,
-        tiles: 'http://{s}.tile.osm.org/{z}/{x}/{y}.png',
-        mapbox: {},
-        tilesAttribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors',
+        tiles: 'https://{s}.tile.osm.org/{z}/{x}/{y}.png',
+        tilesAttribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
         icons: [
           {
             name: 'default',
