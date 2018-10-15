@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/depackt/depackt-leaflet.git"
+    "url": "git+https://github.com/zerowastemap/carto.git"
   },
   "keywords": [
     "nanocomponent",
@@ -28,9 +28,9 @@
   "author": "Augustin Godiscal <hello@auggod.tech>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/depackt/depackt-leaflet/issues"
+    "url": "https://github.com/zerowastemap/carto/issues"
   },
-  "homepage": "https://github.com/depackt/depackt-leaflet#readme",
+  "homepage": "https://github.com/zerowastemap/carto#readme",
   "dependencies": {
     "leaflet": "^1.3.4",
     "leaflet.locatecontrol": "^0.63.0",
