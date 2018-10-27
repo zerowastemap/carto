@@ -53,6 +53,7 @@ class Carto extends Nanocomponent {
     this.tilesAttribution = props.tilesAttribution
     this.icons = props.icons
     this.popupTemplate = props.popupTemplate
+    this.selectedIndex = props.selectedIndex
 
     if (!this.map) {
       this._element = html`<div id="map"></div>`
