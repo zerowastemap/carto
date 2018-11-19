@@ -1,6 +1,6 @@
 {
   "name": "@zerowastemap/carto",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Zero Waste Map",
   "main": "index.js",
   "directories": {
