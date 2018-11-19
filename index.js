@@ -17,16 +17,17 @@ class Carto extends Nanocomponent {
     this.state = state
     this.emit = emit
 
-    this.coords = [50.850340, 4.351710]
-    this.zoom = 15
-    this.scrollWheelZoom = false
+    this._coords = [50.850340, 4.351710]
+    this._zoom = 15
+    this._map = null
+    this._scrollWheelZoom = false
+
     this.items = [] // data items used to create markers and popups
     this.selectedIndex = 0
     this.mapbox = {
       accessToken: '',
       background: 'light'
     }
-    this.map = null
     this.markers = null
 
     this._createMap = this._createMap.bind(this)
@@ -37,8 +38,9 @@ class Carto extends Nanocomponent {
     this.zoomtoselected = this.zoomtoselected.bind(this)
   }
 
-  zoomtoselected (item) {
+  zoomtoselected (item = {}) {
     const { _id } = item // get objectid
+    if (!_id) return
     const selected = this.markers.find((o) => o.item._id === _id)
     markersLayer.zoomToShowLayer(selected.marker, () => {
       selected.marker.openPopup()
@@ -46,16 +48,17 @@ class Carto extends Nanocomponent {
   }
 
   createElement (props) {
+    this._coords = props.coords
+    this._zoom = props.zoom
+
     this.tiles = props.tiles
     this.items = props.items
-    this.coords = props.coords
-    this.zoom = props.zoom
     this.tilesAttribution = props.tilesAttribution
     this.icons = props.icons
     this.popupTemplate = props.popupTemplate
     this.selectedIndex = props.selectedIndex
 
-    if (!this.map) {
+    if (!this._map) {
       this._element = html`<div id="map"></div>`
       if (this._hasWindow) {
         this._createMap()
@@ -71,18 +74,16 @@ class Carto extends Nanocomponent {
   }
 
   update (props) {
-    return props.coords[0] !== this.coords[0] ||
-      props.coords[1] !== this.coords[1] ||
+    return props.coords[0] !== this._coords[0] ||
+      props.coords[1] !== this._coords[1] ||
       compare(this.items, props.items)
   }
 
-  load () {
-    this.map.invalidateSize()
-  }
-
   unload () {
-    this.map.remove()
+    this._map.remove()
     this._element = null
+    this._coords = null
+    this._map = null
   }
 
   _addMarkers () {
@@ -100,7 +101,7 @@ class Carto extends Nanocomponent {
     const defaultIcon = L.divIcon({
       className: 'default-marker-icon',
       html: `
-        <svg viewBox="0 0 16 16" class="icon icon-large icon-${colorInvert} icon-marker">
+        <svg viewBox="0 0 16 16" class="icon icon--lg icon-${colorInvert} icon-marker">
           <use xlink:href="#icon-marker" />
         </svg>
       `,
@@ -112,7 +113,7 @@ class Carto extends Nanocomponent {
     const featuredIcon = L.divIcon({
       className: 'featured-marker-icon',
       html: `
-        <svg viewBox="0 0 16 16" class="icon icon-large icon-${colorInvert} icon-marker">
+        <svg viewBox="0 0 16 16" class="icon icon--lg icon-${colorInvert} icon-marker">
           <use xlink:href="#icon-marker-star" />
         </svg>
       `,
@@ -135,6 +136,10 @@ class Carto extends Nanocomponent {
     this.markers = markers
 
     return markers
+  }
+
+  load () {
+    this._map.invalidateSize()
   }
 
   _addControlPlaceholders (map) {
@@ -162,7 +167,7 @@ class Carto extends Nanocomponent {
         </div>
         <div class="title">
           ${title}
-          <svg viewBox="0 0 16 16" class="icon icon-small icon-arrow-north-east">
+          <svg viewBox="0 0 16 16" class="icon icon--sm icon-arrow-north-east">
             <use xlink:href="#icon-arrow-north-east" />
           </svg>
         </div>
@@ -176,10 +181,6 @@ class Carto extends Nanocomponent {
   }
 
   _createMap () {
-    const element = this._element
-    const coords = this.coords
-    const zoom = this.zoom
-    // const scrollWheelZoom = this.scrollWheelZoom
     const { background = 'light', accessToken } = this.mapbox
     const defaultTiles = `https://api.mapbox.com/styles/v1/mapbox/${background}-v9/tiles/256/{z}/{x}/{y}?access_token=${accessToken}`
     const defaultTilesAttribution = '&copy; <a href="https://www.mapbox.com/map-feedback/">Mapbox</a>'
@@ -187,14 +188,12 @@ class Carto extends Nanocomponent {
     const tilesAttribution = this.tilesAttribution || defaultTilesAttribution
     const mapboxFeedback = '<strong><a href="https://www.mapbox.com/map-feedback/" target="_blank" rel="noopener noreferrer">Improve this map</a></strong>'
 
-    const options = {
-      center: coords,
-      zoom,
+    const map = L.map(this._element, {
+      center: this._coords,
+      zoom: this._zoom,
       zoomControl: false,
-      scrollWheelZoom: false
-    }
-
-    const map = L.map(element, options)
+      scrollWheelZoom: this._scrollWheelZoom
+    })
 
     const tileLayer = L.tileLayer(tiles, {
       attribution: `
@@ -254,7 +253,7 @@ class Carto extends Nanocomponent {
       }
     }).addTo(map)
 
-    map.on('locationfound', (e) => {
+    map.on('locationfound', e => {
       const {latitude: lat, longitude: lng} = e
       this.emit('locationfound', {lat, lng})
       map.stopLocate()
@@ -265,14 +264,17 @@ class Carto extends Nanocomponent {
      * @link https://stackoverflow.com/questions/22538473/leaflet-center-popup-and-marker-to-the-map
      */
 
-    map.on('popupopen', (e) => {
+    map.on('popupopen', e => {
       const { popup } = e
       const index = popup._source._index
       const items = this.items
       const selectedIndex = this.selectedIndex
 
       if (index !== selectedIndex) {
-        this.emit('select', items[index])
+        this.emit('select', {
+          coords: this._coords,
+          item: items[index]
+        })
       }
 
       // find the pixel location on the map where the popup anchor is
@@ -285,7 +287,7 @@ class Carto extends Nanocomponent {
 
     const zoomHome = new L.Control.ZoomHome({
       zoomHomeText: `
-        <svg viewBox="0 0 16 16" class="icon icon-mini icon-home">
+        <svg viewBox="0 0 16 16" class="icon icon--xs icon-home">
           <use xlink:href="#icon-home" />
         </svg>
       `
@@ -293,14 +295,15 @@ class Carto extends Nanocomponent {
 
     zoomHome.addTo(map)
 
-    this.map = map
+    this._map = map
   }
 
   _updateMap () {
     const items = this.items
     const selectedIndex = this.selectedIndex
     this._addMarkers()
-    this.map.invalidateSize()
+    this._map.invalidateSize()
+    // this._map.setView(this._coords)
     this.zoomtoselected(items[selectedIndex])
   }
 }
